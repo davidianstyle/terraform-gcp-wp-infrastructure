@@ -1,11 +1,41 @@
+// Does not work in older versions of Terraform!
+terraform {
+  required_version = ">= 0.12"
+}
+
 // Configure the Google Cloud provider
+data "google_client_config" "default" {}
+
 provider "google" {
  credentials = file("gcpCreds.json")
  project     = var.project_id
 }
 
+// Get sensitive variable data from Google Secret Manager
+data "google_secret_manager_secret_version" "root_pass" {
+  provider  = google
+  secret    = "root_pass"
+}
+data "google_secret_manager_secret_version" "database" {
+  provider  = google
+  secret    = "database"
+}
+data "google_secret_manager_secret_version" "db_user" {
+  provider  = google
+  secret    = "db_user"
+}
+data "google_secret_manager_secret_version" "db_user_pass" {
+  provider  = google
+  secret    = "db_user_pass"
+}
+
+
 //Configuring Kubernetes Provider
-provider "kubernetes" {}
+provider "kubernetes" {
+  host                   = google_container_cluster.gke_cluster1.endpoint
+  token                  = data.google_client_config.default.access_token
+  cluster_ca_certificate = base64decode(google_container_cluster.gke_cluster1.master_auth[0].cluster_ca_certificate)
+}
 
 //Creating First VPC Network
 resource "google_compute_network" "vpc_network1" {
@@ -116,7 +146,7 @@ resource "google_sql_database_instance" "sqldb_Instance" {
   name             = "sql1"
   database_version = "MYSQL_5_6"
   region           = var.region2
-  root_password    = var.root_pass
+  root_password    = data.google_secret_manager_secret_version.root_pass.secret_data
 
   settings {
     tier = "db-f1-micro"
@@ -138,7 +168,7 @@ resource "google_sql_database_instance" "sqldb_Instance" {
 
 //Creating SQL Database
 resource "google_sql_database" "sql_db" {
-  name     = var.database
+  name     = data.google_secret_manager_secret_version.database.secret_data
   instance = google_sql_database_instance.sqldb_Instance.name
 
   depends_on = [
@@ -148,9 +178,9 @@ resource "google_sql_database" "sql_db" {
 
 //Creating SQL Database User
 resource "google_sql_user" "dbUser" {
-  name     = var.db_user
+  name     = data.google_secret_manager_secret_version.db_user.secret_data
   instance = google_sql_database_instance.sqldb_Instance.name
-  password = var.db_user_pass
+  password = data.google_secret_manager_secret_version.db_user_pass.secret_data
 
   depends_on = [
     google_sql_database_instance.sqldb_Instance
@@ -248,19 +278,19 @@ resource "kubernetes_deployment" "wp-dep" {
 
           env {
             name  = "WORDPRESS_DB_HOST"
-            value = "${google_sql_database_instance.sqldb_Instance.ip_address.0.ip_address}"
+            value = google_sql_database_instance.sqldb_Instance.ip_address.0.ip_address
           }
           env {
             name  = "WORDPRESS_DB_USER"
-            value = var.db_user
+            value = data.google_secret_manager_secret_version.db_user.secret_data
           }
           env {
             name  = "WORDPRESS_DB_PASSWORD"
-            value = var.db_user_pass
+            value = data.google_secret_manager_secret_version.db_user_pass.secret_data
           }
           env{
             name  = "WORDPRESS_DB_NAME"
-            value = var.database
+            value = data.google_secret_manager_secret_version.database.secret_data
           }
           env{
             name  = "WORDPRESS_TABLE_PREFIX"
@@ -295,7 +325,7 @@ resource "kubernetes_service" "wpService" {
   spec {
     type     = "LoadBalancer"
     selector = {
-      pod = "${kubernetes_deployment.wp-dep.spec.0.selector.0.match_labels.pod}"
+      pod = kubernetes_deployment.wp-dep.spec.0.selector.0.match_labels.pod
     }
 
     port {
@@ -311,7 +341,7 @@ resource "kubernetes_service" "wpService" {
 
 //Outputs
 output "wp_service_url" {
-  value = "${kubernetes_service.wpService.load_balancer_ingress.0.ip}"
+  value = kubernetes_service.wpService.status.0.load_balancer.0.ingress.0.ip
 
   depends_on = [
     kubernetes_service.wpService
@@ -327,7 +357,7 @@ output "db_host" {
 }
 
 output "database_name" {
-  value = var.database
+  value = data.google_secret_manager_secret_version.database.secret_data
 
   depends_on = [
     google_sql_database_instance.sqldb_Instance
@@ -335,7 +365,7 @@ output "database_name" {
 }
 
 output "db_user_name" {
-  value = var.db_user
+  value = data.google_secret_manager_secret_version.db_user.secret_data
 
   depends_on = [
     google_sql_database_instance.sqldb_Instance
@@ -343,7 +373,7 @@ output "db_user_name" {
 }
 
 output "db_user_passwd" {
-  value = var.db_user_pass
+  value = data.google_secret_manager_secret_version.db_user_pass.secret_data
 
   depends_on = [
     google_sql_database_instance.sqldb_Instance
@@ -353,7 +383,7 @@ output "db_user_passwd" {
 //Open WordPress Site Automatically
 resource "null_resource" "open_wp" {
   provisioner "local-exec" {
-    command = "start chrome ${kubernetes_service.wpService.load_balancer_ingress.0.ip}" 
+    command = "start chrome ${kubernetes_service.wpService.status.0.load_balancer.0.ingress.0.ip}" 
   }
 
   depends_on = [
