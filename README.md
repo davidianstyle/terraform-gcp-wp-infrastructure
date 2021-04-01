@@ -1,6 +1,6 @@
 # terraform-gcp-wp-infrastructure
-This Repository Contains Terraform Code to Deploy WordPress on GCP Infrastructure.\
-_Updated for Terraform 0.12+, and now integrates Google Secret Manager._ 
+This Repository Contains Terraform Code to Deploy WordPress on GCP Infrastructure.  
+_Updated for Terraform 0.12+, and now integrates Google Secret Manager._  
 
 ## Prerequisites
 1. [Terraform](https://www.terraform.io/downloads.html) should be installed and added to your PATH.
@@ -20,6 +20,6 @@ _Updated for Terraform 0.12+, and now integrates Google Secret Manager._
 
 ## Usage
 First Download or Clone this repo to your local system.  Then:  
-To Initiate Terraform WorkSpace           : ```terraform init```\
-To create infrastructure, run command     : ```terraform apply -auto-approve```\
+To Initiate Terraform WorkSpace           : ```terraform init```  
+To create infrastructure, run command     : ```terraform apply -auto-approve```  
 To delete infrastructure, run command     : ```terraform destroy -auto-approve```
