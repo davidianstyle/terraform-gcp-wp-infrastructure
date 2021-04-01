@@ -3,7 +3,7 @@
 //Project ID Variable
 variable "project_id" {
   type = string
-  default = "dm-test-309313"
+  default = "---YOUR_PROJECT_ID---"
 }
 
 //Region1 Variable
