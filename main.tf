@@ -7,7 +7,6 @@ terraform {
 data "google_client_config" "default" {}
 
 provider "google" {
- credentials = file("gcpCreds.json")
  project     = var.project_id
 }
 
