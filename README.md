@@ -6,7 +6,7 @@ _Now integrates Application Default Credentials and Google Secret Manager._
 ## Prerequisites
 1. [Terraform](https://www.terraform.io/downloads.html) should be installed and added to your PATH.
 2. [gcloud SDK](https://cloud.google.com/sdk/docs/install) should be installed and initialized.
-    * *It is _strongly_ recommended that you create a new Google Cloud project for your Terraform deployment!
+    * It is _strongly_ recommended that you create a new Google Cloud project for your Terraform deployment!
 3. Make sure you (or your Service Account) have the following roles:
     * Editor
     * Kubernetes Engine Admin
@@ -36,4 +36,4 @@ This module has been updated to use [Application Default Credentials](https://cl
 1. Create a [Service Account](https://cloud.google.com/iam/docs/creating-managing-service-accounts).
 2. Make sure the Service Account has the roles specified in the Prerequisites.
 3. Create and download a key file for your new Service Account and store them **outside your project**.
-4. Set the [GOOGLE_APPLICATION_CREDENTIALS](https://cloud.google.com/docs/authentication/production#passing_variable) environment variable.
+4. Set the [GOOGLE_APPLICATION_CREDENTIALS](https://cloud.google.com/docs/authentication/production#passing_variable) environment variable to point to your Service Account key file.
